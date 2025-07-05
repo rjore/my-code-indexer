@@ -78,8 +78,8 @@ class AgentConfig:
 def load_index(index_dir: Path):
     embed_model = HuggingFaceEmbedding(model_name=EMBED_MODEL, trust_remote_code=True)
     storage_context = StorageContext.from_defaults(persist_dir=str(index_dir))
-    service_context = ServiceContext.from_defaults(embed_model=embed_model)
-    return VectorStoreIndex.from_vector_store(FaissVectorStore.from_persist_dir(index_dir), storage_context=storage_context, service_context=service_context)
+    Settings.embed_model = embed_model
+    return VectorStoreIndex.from_vector_store(FaissVectorStore.from_persist_dir(index_dir), storage_context=storage_context, embed_model=embed_model)
 
 # --- Tool implementations --- #
 
