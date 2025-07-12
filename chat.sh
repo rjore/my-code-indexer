@@ -8,4 +8,10 @@ echo "Running from $DIR"
 source .venv/bin/activate
 
 
-python refactor_agent.py chat --index ../.code_index --workspace ../refactored-code --model llama3.2:latest
+# python refactor_agent.py chat --index ../.code_index --workspace ../refactored-code --model llama3.2:latest
+
+python refactor_agent.py chat --store pg \
+  --pg-uri "postgresql://vctr:vctr123@localhost/vctr" \
+  --table vectors \
+  --workspace ~/codes/refactored-code \
+  --model llama3.2:latest

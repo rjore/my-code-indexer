@@ -9,5 +9,10 @@ source .venv/bin/activate
 
 
 
-python refactor_agent.py index --src ../my_code --index ../.code_index
+# python refactor_agent.py index --src ~/codes/algo-service --index ~/codes/.code_index
+python refactor_agent.py index \
+  --src ~/codes/algo-service \
+  --store pg \
+  --pg-uri "postgresql://vctr:vctr123@localhost/vctr" \
+  --table vectors
 
