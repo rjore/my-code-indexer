@@ -33,7 +33,7 @@ import argparse, json, sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
-
+import traceback
 import ollama  # pip install ollama‑python
 from llama_index.embeddings.huggingface.base import HuggingFaceEmbedding
 from llama_index.core import SimpleDirectoryReader, VectorStoreIndex, ServiceContext, StorageContext
@@ -69,9 +69,10 @@ def build_index(
     reader = SimpleDirectoryReader(
         str(src_dir),
         recursive=True,
-        required_exts=(".py", ".java", ".ts", ".js", ".sql", ".md"),
+        required_exts=[".py", ".java", ".ts", ".js", ".sql", ".md"]
     )
     docs = reader.load_data()
+    print(f"Loaded {len(docs)} docs")
     embed_model = make_embed_model()
 
     if store == "faiss":
@@ -89,6 +90,8 @@ def build_index(
     elif store == "pg":
         if pg_uri is None:
             raise ValueError("--pg-uri must be supplied for pg store")
+        print("[index] Using PostgreSQL vector store")
+        print(f"pg_uri: {pg_uri}, pg_table: {pg_table}")
         vector_store = PGVectorStore(
             connection_string=pg_uri,
             # prefer_async=False,
@@ -198,32 +201,33 @@ def interactive_chat(cfg: AgentConfig):
     while True:
         try:
             user = input("🟢 > ")
-        except EOFError:
-            break
-        if user.lower() in {"exit", "quit"}:
-            break
-        msgs.append({"role": "user", "content": user})
-        rsp = ollama.chat(model=cfg.model, messages=msgs, tools=TOOLS)["message"]
-        # msgs.append({"role": "assistant", **rsp})
-        msgs.append({"role": "assistant", "content": rsp["content"]})
-        print(rsp["content"].strip())
-        for call in rsp.get("tool_calls", []):
-            fn = call["function"]["name"]
-            print(f"FN: {fn}")
-            fno: ollama._types.Message.ToolCall.Function = call["function"]
-            args = fno.get("arguments", "{}")
-            if fn == "read_file":
-                out = read_file(args["path"], cfg.workspace)
-            elif fn == "write_file":
-                out = write_file(args["path"], args["content"], cfg.workspace)
-            elif fn == "search_code":
-                out = search_code(args["query"], args.get("k", 5), vector_index)
-            else:
-                out = f"ERROR: unknown tool {fn}"
-            msgs.append({"role": "tool", "tool_call_id": call["id"], "content": out})
-            follow = ollama.chat(model=cfg.model, messages=msgs)["message"]
-            msgs.append({"role": "assistant", **follow})
-            print(follow["content"].strip())
+            if user.lower() in {"exit", "quit"}:
+                break
+            msgs.append({"role": "user", "content": user})
+            rsp = ollama.chat(model=cfg.model, messages=msgs, tools=TOOLS)["message"]
+            # msgs.append({"role": "assistant", **rsp})
+            msgs.append({"role": "assistant", "content": rsp["content"]})
+            print(rsp["content"].strip())
+            for call in rsp.get("tool_calls", []):
+                fn = call["function"]["name"]
+                print(f"FN: {fn}")
+                fno: ollama._types.Message.ToolCall.Function = call["function"]
+                args = fno.get("arguments", "{}")
+                if fn == "read_file":
+                    out = read_file(args["path"], cfg.workspace)
+                elif fn == "write_file":
+                    out = write_file(args["path"], args["content"], cfg.workspace)
+                elif fn == "search_code":
+                    out = search_code(args["query"], args.get("k", 5), vector_index)
+                else:
+                    out = f"ERROR: unknown tool {fn}"
+                msgs.append({"role": "tool", "tool_call_id": call["id"], "content": out})
+                follow = ollama.chat(model=cfg.model, messages=msgs)["message"]
+                msgs.append({"role": "assistant", **follow})
+                print(follow["content"].strip())
+        except Exception as e:
+            traceback.print_exc()
+        
 
 # ───────────────── CLI ─────────────────────────── #
 

@@ -10,6 +10,7 @@ source .venv/bin/activate
 
 
 # python refactor_agent.py index --src ~/codes/algo-service --index ~/codes/.code_index
+# Create database first, and install pgvector extension as PG superuser
 python refactor_agent.py index \
   --src ~/codes/algo-service \
   --store pg \
